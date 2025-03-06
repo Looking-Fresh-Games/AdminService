@@ -3,7 +3,7 @@ A system that allows admin commands to be registered and triggered by specified 
 
 # Usage
 ```luau
-local AdminService = require(ReplicatedStorage.Packages.AdminService)
+local AdminService = require(ServerStorage.ServerPackages.AdminService)
 
 local config: AdminService.Configuration =
 	{ Admins = {1301107}, RegisterDefaultCommands = true, SendUpdatesToAdmins = true }
