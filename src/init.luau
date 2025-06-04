@@ -20,7 +20,11 @@ export type Configuration = {
 	-- [External]
 	RegisterDefaultCommands: boolean,
 	SendUpdatesToAdmins: boolean,
-	Admins: { number },
+	Admins: { number }?,
+	AdminGroup: {
+		GroupId: number,
+		MinimumRank: number,
+	}?,
 }
 
 export type AdminService = {
@@ -76,6 +80,26 @@ local AdminService = { Commands = {}, Admins = {} } :: AdminService
 --------------------------------------------------------------------
 -- Methods
 
+local function isGroupAdmin(player: Player, groupId: number, minimumRank: number): boolean
+	local success, rank = pcall(function()
+		return player:GetRankInGroup(groupId)
+	end)
+
+	return success and rank >= minimumRank
+end
+
+local function getGroupAdmins(groupId: number, minimumRank: number): { number }
+	local admins = {}
+
+	for _, player: Player in Players:GetPlayers() do
+		if isGroupAdmin(player, groupId, minimumRank) then
+			table.insert(admins, player.UserId)
+		end
+	end
+
+	return admins
+end
+
 --[=[
     Initial config loading
 
@@ -99,9 +123,32 @@ function AdminService:LoadConfig(config: Configuration?)
 			-- Append unique ids
 			table.insert(AdminService.Admins, userId)
 		end
-
-		AdminService:_dispatchToAdmins()
 	end
+
+	if config.AdminGroup then
+		local groupAdmins = getGroupAdmins(config.AdminGroup.GroupId, config.AdminGroup.MinimumRank)
+
+		-- Push admin userids from group
+		for _, userId: number in groupAdmins do
+			if table.find(AdminService.Admins, userId) then
+				continue
+			end
+
+			table.insert(AdminService.Admins, userId)
+		end
+
+		-- Populate group admins as players join the game
+		Players.PlayerAdded:Connect(function(player: Player)
+			if
+				isGroupAdmin(player, config.AdminGroup.GroupId, config.AdminGroup.MinimumRank)
+				and not table.find(AdminService.Admins, player.UserId)
+			then
+				table.insert(AdminService.Admins, player.UserId)
+			end
+		end)
+	end
+
+	AdminService:_dispatchToAdmins()
 
 	if config.RegisterDefaultCommands then
 		AdminService:RegisterCommand("admin", function(_callingPlayer: Player, playerName: string?)
