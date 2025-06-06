@@ -69,6 +69,7 @@ export type AdminService = {
 
 -- Services
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 --[=[
     @class AdminService
@@ -85,7 +86,7 @@ local function isGroupAdmin(player: Player, groupId: number, minimumRank: number
 		return player:GetRankInGroup(groupId)
 	end)
 
-	return success and rank >= minimumRank
+	return if RunService:IsStudio() then true else success and rank >= minimumRank
 end
 
 local function getGroupAdmins(groupId: number, minimumRank: number): { number }
